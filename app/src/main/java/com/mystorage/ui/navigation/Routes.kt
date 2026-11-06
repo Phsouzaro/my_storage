@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object StockRoute
 @Serializable data object SettingsRoute
 @Serializable data object ScannerRoute
+@Serializable data object CategoriesRoute
 @Serializable data class ProductRoute(val productId: String)
 
 /**

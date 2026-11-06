@@ -6,7 +6,7 @@ import com.mystorage.domain.model.Product
 import com.mystorage.domain.model.ProductInfo
 import com.mystorage.domain.model.ProductSource
 import com.mystorage.domain.repository.ProductInfoSource
-import com.mystorage.domain.repository.ProductRepository
+import com.mystorage.fakes.FakeProductRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -23,11 +23,7 @@ class LookupBarcodeUseCaseTest {
         categoryId = "cat-bebidas", unit = MeasureUnit.UN, minStock = null, source = ProductSource.OPEN_FOOD_FACTS,
     )
 
-    private class FakeProducts(private val product: Product?) : ProductRepository {
-        override suspend fun findByBarcode(barcode: String) = product?.takeIf { it.barcode == barcode }
-        override suspend fun findById(id: String) = product?.takeIf { it.id == id }
-        override fun observeById(id: String) = kotlinx.coroutines.flow.flowOf(product?.takeIf { it.id == id })
-    }
+    private class FakeProducts(product: Product?) : FakeProductRepository(listOfNotNull(product))
 
     private class FakeSource(
         override val name: String,

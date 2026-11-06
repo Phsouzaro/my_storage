@@ -5,21 +5,39 @@ import com.mystorage.domain.model.Category
 import com.mystorage.domain.model.Lot
 import com.mystorage.domain.model.LotMovement
 import com.mystorage.domain.model.LotWithProduct
-import java.time.LocalDate
 import com.mystorage.domain.model.NewStockItem
 import com.mystorage.domain.model.Product
 import com.mystorage.domain.model.ProductInfo
 import com.mystorage.domain.model.StockSummary
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 interface CategoryRepository {
     fun observeAll(): Flow<List<Category>>
+
+    /** Quantidade de produtos ativos por categoria (para a tela de categorias e para bloquear exclusão). */
+    fun observeProductCounts(): Flow<Map<String, Int>>
+
+    suspend fun getAll(): List<Category>
+    suspend fun productCount(categoryId: String): Int
+
+    /** Cria (id novo) ou atualiza uma categoria. */
+    suspend fun save(category: Category)
+
+    /** Soft delete. Só chamar se não houver produtos ativos na categoria. */
+    suspend fun delete(categoryId: String)
 }
 
 interface ProductRepository {
     suspend fun findByBarcode(barcode: String): Product?
     suspend fun findById(id: String): Product?
     fun observeById(id: String): Flow<Product?>
+
+    /** Atualiza nome, marca, categoria e unidade. */
+    suspend fun update(product: Product)
+
+    /** Soft delete do produto e de todos os seus lotes. */
+    suspend fun delete(productId: String)
 }
 
 interface StockRepository {
@@ -40,6 +58,15 @@ interface StockRepository {
 
     /** Cria o produto (se novo), o lote e a movimentação de entrada numa única transação. Retorna o id do lote. */
     suspend fun addStockItem(item: NewStockItem): String
+
+    /**
+     * Atualiza validade/local/quantidade de um lote. Se a quantidade mudou,
+     * registra um movimento ADJUST com a diferença (pode ser negativa).
+     */
+    suspend fun updateLot(lot: Lot)
+
+    /** Soft delete de um lote lançado por engano (diferente de descarte, que é perda). */
+    suspend fun deleteLot(lotId: String)
 }
 
 interface SettingsRepository {

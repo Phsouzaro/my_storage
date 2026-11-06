@@ -1,6 +1,12 @@
 package com.mystorage.ui.product
 
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,8 +67,12 @@ import com.mystorage.ui.components.label
 /** Diálogo aberto no momento (sobrevive à rotação via ids). */
 private sealed interface PendingAction {
     data object ConsumeProduct : PendingAction
+    data object EditProduct : PendingAction
+    data object DeleteProduct : PendingAction
     data class ConsumeLot(val lotId: String) : PendingAction
     data class DiscardLot(val lotId: String) : PendingAction
+    data class EditLot(val lotId: String) : PendingAction
+    data class DeleteLot(val lotId: String) : PendingAction
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,16 +86,44 @@ fun ProductScreen(
     val snackbar = remember { SnackbarHostState() }
     var pending by remember { mutableStateOf<PendingAction?>(null) }
 
+    val context = LocalContext.current
+    var topMenu by remember { mutableStateOf(false) }
+
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { snackbar.showSnackbar(it) }
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.closed.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            onBack()
+        }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(state.product?.name ?: "Produto", maxLines = 1) },
+                title = { Text(state.product?.name ?: "Produto", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar") }
+                },
+                actions = {
+                    if (state.product != null) {
+                        IconButton(onClick = { pending = PendingAction.EditProduct }) {
+                            Icon(Icons.Filled.Edit, contentDescription = "Editar produto")
+                        }
+                        Box {
+                            IconButton(onClick = { topMenu = true }) {
+                                Icon(Icons.Filled.MoreVert, contentDescription = "Mais opções")
+                            }
+                            DropdownMenu(expanded = topMenu, onDismissRequest = { topMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Excluir produto") },
+                                    leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+                                    onClick = { topMenu = false; pending = PendingAction.DeleteProduct },
+                                )
+                            }
+                        }
+                    }
                 },
             )
         },
@@ -145,6 +183,8 @@ fun ProductScreen(
                         isNext = index == 0 && state.lots.size > 1,
                         onConsume = { pending = PendingAction.ConsumeLot(lot.id) },
                         onDiscard = { pending = PendingAction.DiscardLot(lot.id) },
+                        onEdit = { pending = PendingAction.EditLot(lot.id) },
+                        onDelete = { pending = PendingAction.DeleteLot(lot.id) },
                     )
                 }
             }
@@ -184,6 +224,41 @@ fun ProductScreen(
                 message = "Registra a perda (vencido, estragado...). Validade ${lot.expiryDate.formatDate(lot.expiryMonthOnly)}.",
                 onDismiss = { pending = null },
                 onConfirm = { viewModel.discardLot(lot, it); pending = null },
+            )
+        }
+        PendingAction.EditProduct -> EditProductDialog(
+            product = product,
+            categories = state.categories,
+            onDismiss = { pending = null },
+            onSave = { name, brand, categoryId, unit ->
+                viewModel.updateProduct(name, brand, categoryId, unit)
+                pending = null
+            },
+        )
+        PendingAction.DeleteProduct -> ConfirmDialog(
+            title = "Excluir produto?",
+            message = "\"${product.name}\" e todos os seus lotes saem do estoque. " +
+                "Se escanear o código de novo, ele será cadastrado outra vez.",
+            confirmLabel = "Excluir",
+            onDismiss = { pending = null },
+            onConfirm = { viewModel.deleteProduct(); pending = null },
+        )
+        is PendingAction.EditLot -> state.lots.firstOrNull { it.id == action.lotId }?.let { lot ->
+            EditLotDialog(
+                lot = lot,
+                unit = product.unit,
+                onDismiss = { pending = null },
+                onSave = { viewModel.updateLot(it); pending = null },
+            )
+        }
+        is PendingAction.DeleteLot -> state.lots.firstOrNull { it.id == action.lotId }?.let { lot ->
+            ConfirmDialog(
+                title = "Excluir lote?",
+                message = "Use para corrigir um lote lançado por engano. " +
+                    "Se o produto estragou ou venceu, prefira \"Descartar\" — assim a perda fica no histórico.",
+                confirmLabel = "Excluir",
+                onDismiss = { pending = null },
+                onConfirm = { viewModel.deleteLot(lot); pending = null },
             )
         }
     }
@@ -243,6 +318,8 @@ private fun LotCard(
     isNext: Boolean,
     onConsume: () -> Unit,
     onDiscard: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     var menu by rememberSaveable { mutableStateOf(false) }
     OutlinedCard(Modifier.fillMaxWidth()) {
@@ -274,6 +351,9 @@ private fun LotCard(
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text("Consumir deste lote") }, onClick = { menu = false; onConsume() })
                     DropdownMenuItem(text = { Text("Descartar") }, onClick = { menu = false; onDiscard() })
+                    HorizontalDivider()
+                    DropdownMenuItem(text = { Text("Editar lote") }, onClick = { menu = false; onEdit() })
+                    DropdownMenuItem(text = { Text("Excluir lote") }, onClick = { menu = false; onDelete() })
                 }
             }
         }

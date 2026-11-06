@@ -47,7 +47,10 @@ import com.mystorage.domain.model.AppSettings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    onOpenCategories: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel(),
+) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val backupBusy by viewModel.backupBusy.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -108,6 +111,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             ) {
                 Icon(Icons.Filled.Notifications, contentDescription = null)
                 Text("  Verificar agora")
+            }
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+            Text("Organização", style = MaterialTheme.typography.titleMedium)
+            OutlinedButton(onClick = onOpenCategories, modifier = Modifier.fillMaxWidth()) {
+                Text("Gerenciar categorias")
             }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))

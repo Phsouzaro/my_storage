@@ -2,13 +2,8 @@ package com.mystorage.domain.usecase
 
 import com.mystorage.domain.model.Lot
 import com.mystorage.domain.model.LotMovement
-import com.mystorage.domain.model.LotWithProduct
 import com.mystorage.domain.model.MovementType
-import com.mystorage.domain.model.NewStockItem
-import com.mystorage.domain.model.StockSummary
-import com.mystorage.domain.repository.StockRepository
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
+import com.mystorage.fakes.FakeStockRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -24,15 +19,10 @@ class StockOutUseCasesTest {
         expiryMonthOnly = false, addedAt = base.minusDays(addedDaysAgo), location = null,
     )
 
-    private class FakeStock(private val lots: List<Lot>) : StockRepository {
+    private class FakeStock(private val lots: List<Lot>) : FakeStockRepository() {
         val applied = mutableListOf<LotMovement>()
-        override fun observeSummary(): Flow<List<StockSummary>> = emptyFlow()
-        override fun observeActiveLots(): Flow<List<LotWithProduct>> = emptyFlow()
-        override suspend fun getActiveLots(): List<LotWithProduct> = emptyList()
-        override fun observeLotsOfProduct(productId: String): Flow<List<Lot>> = emptyFlow()
         override suspend fun getLotsOfProduct(productId: String) = lots
         override suspend fun applyMovements(movements: List<LotMovement>) { applied += movements }
-        override suspend fun addStockItem(item: NewStockItem) = error("não usado")
     }
 
     @Test

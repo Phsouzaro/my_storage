@@ -17,9 +17,26 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE deletedAt IS NULL ORDER BY sortOrder, name")
     fun observeAll(): Flow<List<CategoryEntity>>
 
+    @Query("SELECT * FROM categories WHERE deletedAt IS NULL ORDER BY sortOrder, name")
+    suspend fun getAll(): List<CategoryEntity>
+
+    @Query("SELECT * FROM categories WHERE id = :id")
+    suspend fun findById(id: String): CategoryEntity?
+
+    @Query("SELECT categoryId, COUNT(*) AS count FROM products WHERE deletedAt IS NULL GROUP BY categoryId")
+    fun observeProductCounts(): Flow<List<CategoryCountRow>>
+
+    @Query("SELECT COUNT(*) FROM products WHERE categoryId = :categoryId AND deletedAt IS NULL")
+    suspend fun productCount(categoryId: String): Int
+
+    @Query("UPDATE categories SET deletedAt = :now, updatedAt = :now WHERE id = :id")
+    suspend fun softDelete(id: String, now: Long)
+
     @Upsert
     suspend fun upsert(category: CategoryEntity)
 }
+
+data class CategoryCountRow(val categoryId: String, val count: Int)
 
 @Dao
 interface ProductDao {
@@ -34,6 +51,13 @@ interface ProductDao {
 
     @Query("SELECT * FROM products WHERE id = :id")
     fun observeById(id: String): Flow<ProductEntity?>
+
+    /** Inclui excluídos: o índice de barcode é único, então um código "excluído" precisa ser reaproveitado. */
+    @Query("SELECT * FROM products WHERE barcode = :barcode LIMIT 1")
+    suspend fun findByBarcodeIncludingDeleted(barcode: String): ProductEntity?
+
+    @Query("UPDATE products SET deletedAt = :now, updatedAt = :now WHERE id = :id")
+    suspend fun softDelete(id: String, now: Long)
 
     @Upsert
     suspend fun upsert(product: ProductEntity)
@@ -56,6 +80,12 @@ interface LotDao {
 
     @Query("UPDATE lots SET quantity = :quantity, updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateQuantity(id: String, quantity: Double, updatedAt: Long)
+
+    @Query("UPDATE lots SET deletedAt = :now, updatedAt = :now WHERE id = :id")
+    suspend fun softDelete(id: String, now: Long)
+
+    @Query("UPDATE lots SET deletedAt = :now, updatedAt = :now WHERE productId = :productId AND deletedAt IS NULL")
+    suspend fun softDeleteByProduct(productId: String, now: Long)
 
     /** Lotes ativos que vencem até [limitEpochDay] (inclusive), incluindo os já vencidos. */
     @Query("SELECT * FROM lots WHERE deletedAt IS NULL AND quantity > 0 AND expiryDate <= :limitEpochDay ORDER BY expiryDate")

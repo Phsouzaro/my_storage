@@ -6,6 +6,7 @@ import com.mystorage.data.local.dao.CategoryDao
 import com.mystorage.data.local.dao.LotDao
 import com.mystorage.data.local.dao.MovementDao
 import com.mystorage.data.local.dao.ProductDao
+import com.mystorage.data.local.entity.CategoryEntity
 import com.mystorage.data.local.entity.LotEntity
 import com.mystorage.data.local.entity.MovementEntity
 import com.mystorage.data.local.entity.ProductEntity
@@ -31,16 +32,62 @@ class RoomCategoryRepository @Inject constructor(
     private val dao: CategoryDao,
 ) : CategoryRepository {
     override fun observeAll(): Flow<List<Category>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
+
+    override fun observeProductCounts(): Flow<Map<String, Int>> =
+        dao.observeProductCounts().map { rows -> rows.associate { it.categoryId to it.count } }
+
+    override suspend fun getAll(): List<Category> = dao.getAll().map { it.toDomain() }
+
+    override suspend fun productCount(categoryId: String): Int = dao.productCount(categoryId)
+
+    override suspend fun save(category: Category) {
+        val existing = dao.findById(category.id)
+        dao.upsert(
+            CategoryEntity(
+                id = category.id,
+                name = category.name,
+                icon = category.icon,
+                color = category.color,
+                sortOrder = category.sortOrder,
+                updatedAt = System.currentTimeMillis(),
+                deletedAt = existing?.deletedAt,
+            ),
+        )
+    }
+
+    override suspend fun delete(categoryId: String) = dao.softDelete(categoryId, System.currentTimeMillis())
 }
 
 class RoomProductRepository @Inject constructor(
+    private val db: AppDatabase,
     private val dao: ProductDao,
+    private val lotDao: LotDao,
 ) : ProductRepository {
     override suspend fun findByBarcode(barcode: String): Product? = dao.findByBarcode(barcode)?.toDomain()
 
     override suspend fun findById(id: String): Product? = dao.findById(id)?.toDomain()
 
-    override fun observeById(id: String): Flow<Product?> = dao.observeById(id).map { it?.toDomain() }
+    override fun observeById(id: String): Flow<Product?> =
+        dao.observeById(id).map { it?.takeIf { p -> p.deletedAt == null }?.toDomain() }
+
+    override suspend fun update(product: Product) {
+        val current = requireNotNull(dao.findById(product.id)) { "Produto não encontrado" }
+        dao.upsert(
+            current.copy(
+                name = product.name,
+                brand = product.brand,
+                categoryId = product.categoryId,
+                unit = product.unit,
+                updatedAt = System.currentTimeMillis(),
+            ),
+        )
+    }
+
+    override suspend fun delete(productId: String) = db.withTransaction {
+        val now = System.currentTimeMillis()
+        lotDao.softDeleteByProduct(productId, now)
+        dao.softDelete(productId, now)
+    }
 }
 
 class RoomStockRepository @Inject constructor(
@@ -90,9 +137,26 @@ class RoomStockRepository @Inject constructor(
 
         val productId = item.productId ?: run {
             val p = requireNotNull(item.newProduct)
-            // Se o código já existe (ex.: escaneado duas vezes rápido), reaproveita o produto.
-            p.barcode?.let { productDao.findByBarcode(it) }?.id
-                ?: UUID.randomUUID().toString().also { id ->
+            val sameBarcode = p.barcode?.let { productDao.findByBarcodeIncludingDeleted(it) }
+            when {
+                // Código já ativo (ex.: escaneado duas vezes rápido): reaproveita o produto.
+                sameBarcode != null && sameBarcode.deletedAt == null -> sameBarcode.id
+                // Código de um produto excluído: o barcode é único, então "ressuscita" o registro com os dados novos.
+                sameBarcode != null -> sameBarcode.id.also {
+                    productDao.upsert(
+                        sameBarcode.copy(
+                            name = p.name,
+                            brand = p.brand,
+                            imageUrl = p.imageUrl,
+                            categoryId = p.categoryId,
+                            unit = p.unit,
+                            source = p.source,
+                            updatedAt = now,
+                            deletedAt = null,
+                        ),
+                    )
+                }
+                else -> UUID.randomUUID().toString().also { id ->
                     productDao.upsert(
                         ProductEntity(
                             id = id,
@@ -108,6 +172,7 @@ class RoomStockRepository @Inject constructor(
                         ),
                     )
                 }
+            }
         }
 
         val lotId = UUID.randomUUID().toString()
@@ -134,4 +199,32 @@ class RoomStockRepository @Inject constructor(
         )
         lotId
     }
+
+    override suspend fun updateLot(lot: Lot) = db.withTransaction {
+        val current = requireNotNull(lotDao.findById(lot.id)) { "Lote não encontrado" }
+        val now = System.currentTimeMillis()
+        lotDao.upsert(
+            current.copy(
+                quantity = lot.quantity,
+                expiryDate = lot.expiryDate,
+                expiryMonthOnly = lot.expiryMonthOnly,
+                location = lot.location,
+                updatedAt = now,
+            ),
+        )
+        val delta = lot.quantity - current.quantity
+        if (kotlin.math.abs(delta) > 1e-9) {
+            movementDao.insert(
+                MovementEntity(
+                    id = UUID.randomUUID().toString(),
+                    lotId = lot.id,
+                    type = MovementType.ADJUST,
+                    quantity = delta,
+                    createdAt = now,
+                ),
+            )
+        }
+    }
+
+    override suspend fun deleteLot(lotId: String) = lotDao.softDelete(lotId, System.currentTimeMillis())
 }

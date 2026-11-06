@@ -23,6 +23,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mystorage.ui.additem.AddItemScreen
+import com.mystorage.ui.categories.CategoriesScreen
 import com.mystorage.ui.home.HomeScreen
 import com.mystorage.ui.product.ProductScreen
 import com.mystorage.ui.scanner.ScannerScreen
@@ -91,7 +92,8 @@ fun MyStorageNavHost() {
                     onScanClick = { navController.navigate(ScannerRoute) },
                 )
             }
-            composable<SettingsRoute> { SettingsScreen() }
+            composable<SettingsRoute> { SettingsScreen(onOpenCategories = { navController.navigate(CategoriesRoute) }) }
+            composable<CategoriesRoute> { CategoriesScreen(onBack = navController::popBackStack) }
             composable<ScannerRoute> {
                 ScannerScreen(
                     onBarcode = { navController.navigate(AddItemRoute(it)) },
