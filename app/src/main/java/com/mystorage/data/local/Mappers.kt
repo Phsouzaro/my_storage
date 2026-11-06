@@ -54,6 +54,7 @@ fun StockSummaryRow.toDomain() = StockSummary(
     brand = brand,
     imageUrl = imageUrl,
     unit = unit,
+    categoryId = categoryId,
     categoryName = categoryName,
     totalQuantity = totalQuantity,
     nextExpiry = nextExpiry,

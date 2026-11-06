@@ -58,6 +58,7 @@ data class StockSummary(
     val brand: String?,
     val imageUrl: String?,
     val unit: MeasureUnit,
+    val categoryId: String,
     val categoryName: String,
     val totalQuantity: Double,
     val nextExpiry: LocalDate,

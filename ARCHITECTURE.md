@@ -312,12 +312,12 @@ UUIDs + `updatedAt` + `deletedAt` em todas as entidades → estratégia *last-wr
 - [x] Modelo de dados + migrations + seed de categorias
 - [x] Scanner (CameraX + ML Kit) com modo contínuo
 - [x] Lookup Open Food Facts → Cosmos → manual, com cache local
-- [ ] CRUD de produtos, lotes e categorias
+- [ ] CRUD de produtos, lotes e categorias (falta: editar/excluir produto e lote, gerenciar categorias)
 - [x] Consumo / descarte com sugestão FIFO por validade (tela de produto)
-- [ ] Home com alertas + tela de estoque com filtros
+- [x] Home com alertas + tela de estoque com filtros
 - [x] `ExpiryCheckWorker` + notificação agrupada
 - [x] Configurações (prazo, horário)
-- [ ] Auto Backup + exportar/importar JSON
+- [x] Auto Backup + exportar/importar JSON
 
 ### v2
 - [ ] Histórico de movimentações e estatísticas (consumido × descartado)

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.mystorage.data.local.AppDatabase
 import com.mystorage.data.local.SeedCategories
+import com.mystorage.data.local.dao.BackupDao
 import com.mystorage.data.local.dao.CategoryDao
 import com.mystorage.data.local.dao.LotDao
 import com.mystorage.data.local.dao.MovementDao
@@ -30,4 +31,5 @@ object DatabaseModule {
     @Provides fun provideProductDao(db: AppDatabase): ProductDao = db.productDao()
     @Provides fun provideLotDao(db: AppDatabase): LotDao = db.lotDao()
     @Provides fun provideMovementDao(db: AppDatabase): MovementDao = db.movementDao()
+    @Provides fun provideBackupDao(db: AppDatabase): BackupDao = db.backupDao()
 }

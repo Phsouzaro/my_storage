@@ -68,7 +68,7 @@ interface LotDao {
     @Query(
         """
         SELECT p.id AS productId, p.name, p.brand, p.imageUrl, p.unit,
-               c.name AS categoryName,
+               p.categoryId, c.name AS categoryName,
                SUM(l.quantity) AS totalQuantity,
                MIN(l.expiryDate) AS nextExpiry,
                COUNT(l.id) AS lotCount
@@ -118,6 +118,7 @@ data class StockSummaryRow(
     val brand: String?,
     val imageUrl: String?,
     val unit: MeasureUnit,
+    val categoryId: String,
     val categoryName: String,
     val totalQuantity: Double,
     val nextExpiry: LocalDate,

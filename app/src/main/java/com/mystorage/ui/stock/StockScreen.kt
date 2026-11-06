@@ -2,26 +2,44 @@ package com.mystorage.ui.stock
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.mystorage.domain.model.StatusFilter
 import com.mystorage.domain.model.StockSummary
 import com.mystorage.ui.components.ExpiryBadge
 import com.mystorage.ui.components.formatDate
@@ -43,7 +62,7 @@ fun StockScreen(
     onScanClick: () -> Unit,
     viewModel: StockViewModel = hiltViewModel(),
 ) {
-    val items by viewModel.items.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     Scaffold(
         floatingActionButton = {
@@ -54,25 +73,111 @@ fun StockScreen(
             )
         },
     ) { padding ->
-        val list = items
-        when {
-            list == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            list.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    "Seu estoque está vazio.\nToque em Escanear para adicionar o primeiro produto.",
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+        Column(Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
+            if (state.totalCount > 0) {
+                FilterBar(state, viewModel)
             }
-            else -> LazyColumn(
-                contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 96.dp),
-            ) {
-                items(list, key = { it.productId }) { item ->
-                    StockRow(item, onClick = { onProductClick(item.productId) })
-                    HorizontalDivider()
+            when {
+                state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                state.totalCount == 0 -> CenterMessage(
+                    "Seu estoque está vazio.\nToque em Escanear para adicionar o primeiro produto.",
+                )
+                state.items.isEmpty() -> CenterMessage("Nenhum produto encontrado com esses filtros.") {
+                    TextButton(onClick = viewModel::clearFilters) { Text("Limpar filtros") }
+                }
+                else -> LazyColumn(contentPadding = PaddingValues(bottom = 96.dp)) {
+                    if (state.filter.isActive) {
+                        item {
+                            Text(
+                                "${state.items.size} de ${state.totalCount} produtos",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
+                    items(state.items, key = { it.productId }) { item ->
+                        StockRow(item, onClick = { onProductClick(item.productId) })
+                        HorizontalDivider()
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FilterBar(state: StockUiState, vm: StockViewModel) {
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        OutlinedTextField(
+            value = state.filter.query,
+            onValueChange = vm::onQueryChange,
+            placeholder = { Text("Buscar por nome ou marca") },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            trailingIcon = {
+                if (state.filter.query.isNotEmpty()) {
+                    IconButton(onClick = { vm.onQueryChange("") }) { Icon(Icons.Filled.Clear, contentDescription = "Limpar busca") }
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(28.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CategoryChip(state, vm::onCategoryChange)
+            listOf(
+                StatusFilter.EXPIRED to "Vencidos",
+                StatusFilter.CRITICAL to "Até 7 dias",
+                StatusFilter.WARNING to "Até ${state.warningDays} dias",
+            ).forEach { (status, label) ->
+                val selected = state.filter.status == status
+                FilterChip(
+                    selected = selected,
+                    onClick = { vm.onStatusChange(if (selected) StatusFilter.ALL else status) },
+                    label = { Text(label) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryChip(state: StockUiState, onSelect: (String?) -> Unit) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val selected = state.categories.firstOrNull { it.id == state.filter.categoryId }
+    Box {
+        FilterChip(
+            selected = selected != null,
+            onClick = { expanded = true },
+            label = { Text(selected?.name ?: "Categoria") },
+            trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(text = { Text("Todas") }, onClick = { onSelect(null); expanded = false })
+            state.categories.forEach { category ->
+                DropdownMenuItem(text = { Text(category.name) }, onClick = { onSelect(category.id); expanded = false })
+            }
+        }
+    }
+}
+
+@Composable
+private fun CenterMessage(text: String, action: @Composable () -> Unit = {}) {
+    Column(
+        Modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(text, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge)
+        action()
     }
 }
 

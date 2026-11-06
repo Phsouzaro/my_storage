@@ -53,6 +53,17 @@ interface SettingsRepository {
     suspend fun setLastExpiryCheck(date: LocalDate)
 }
 
+/** Resumo de um backup exportado/importado (para mostrar ao usuário). */
+data class BackupCounts(val products: Int, val lots: Int)
+
+interface BackupRepository {
+    /** Gera o JSON com todo o banco. */
+    suspend fun exportJson(): Pair<String, BackupCounts>
+
+    /** Valida o JSON e, se estiver ok, substitui todos os dados atuais numa única transação. */
+    suspend fun importJson(json: String): BackupCounts
+}
+
 /** Fonte externa de dados de produto (Open Food Facts, Cosmos...). */
 interface ProductInfoSource {
     val name: String
