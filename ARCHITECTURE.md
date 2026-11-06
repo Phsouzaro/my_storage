@@ -308,10 +308,10 @@ UUIDs + `updatedAt` + `deletedAt` em todas as entidades → estratégia *last-wr
 ## 10. Roadmap
 
 ### v1 — MVP
-- [ ] Setup do projeto (Compose, Hilt, Room, Version Catalog)
-- [ ] Modelo de dados + migrations + seed de categorias
-- [ ] Scanner (CameraX + ML Kit) com modo contínuo
-- [ ] Lookup Open Food Facts → Cosmos → manual, com cache local
+- [x] Setup do projeto (Compose, Hilt, Room, Version Catalog)
+- [x] Modelo de dados + migrations + seed de categorias
+- [x] Scanner (CameraX + ML Kit) com modo contínuo
+- [x] Lookup Open Food Facts → Cosmos → manual, com cache local
 - [ ] CRUD de produtos, lotes e categorias
 - [ ] Consumo / descarte com sugestão FIFO por validade
 - [ ] Home com alertas + tela de estoque com filtros

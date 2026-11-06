@@ -1,5 +1,7 @@
 package com.mystorage.ui.navigation
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -21,6 +23,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.mystorage.ui.additem.AddItemScreen
 import com.mystorage.ui.home.HomeScreen
 import com.mystorage.ui.product.ProductScreen
 import com.mystorage.ui.scanner.ScannerScreen
@@ -49,6 +52,8 @@ fun MyStorageNavHost() {
     val showBottomBar = topLevelDestinations.any { currentDestination?.hasRoute(it.routeClass) == true }
 
     Scaffold(
+        // Cada tela cuida dos próprios insets (status bar / TopAppBar); aqui só a barra inferior.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {
@@ -73,12 +78,27 @@ fun MyStorageNavHost() {
         NavHost(
             navController = navController,
             startDestination = HomeRoute,
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
         ) {
             composable<HomeRoute> { HomeScreen(onScanClick = { navController.navigate(ScannerRoute) }) }
-            composable<StockRoute> { StockScreen(onProductClick = { navController.navigate(ProductRoute(it)) }) }
+            composable<StockRoute> {
+                StockScreen(
+                    onProductClick = { navController.navigate(ProductRoute(it)) },
+                    onScanClick = { navController.navigate(ScannerRoute) },
+                )
+            }
             composable<SettingsRoute> { SettingsScreen() }
-            composable<ScannerRoute> { ScannerScreen(onBack = navController::popBackStack) }
+            composable<ScannerRoute> {
+                ScannerScreen(
+                    onBarcode = { navController.navigate(AddItemRoute(it)) },
+                    onWithoutBarcode = { navController.navigate(AddItemRoute(null)) },
+                    onBack = navController::popBackStack,
+                )
+            }
+            composable<AddItemRoute> {
+                // Modo contínuo: depois de salvar, volta para o scanner.
+                AddItemScreen(onSaved = navController::popBackStack, onBack = navController::popBackStack)
+            }
             composable<ProductRoute> { entry ->
                 ProductScreen(
                     productId = entry.toRoute<ProductRoute>().productId,

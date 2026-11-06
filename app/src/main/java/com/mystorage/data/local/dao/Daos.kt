@@ -8,7 +8,9 @@ import com.mystorage.data.local.entity.CategoryEntity
 import com.mystorage.data.local.entity.LotEntity
 import com.mystorage.data.local.entity.MovementEntity
 import com.mystorage.data.local.entity.ProductEntity
+import com.mystorage.domain.model.MeasureUnit
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 @Dao
 interface CategoryDao {
@@ -49,7 +51,37 @@ interface LotDao {
 
     @Upsert
     suspend fun upsert(lot: LotEntity)
+
+    /** Um registro por produto com lotes ativos: soma, validade mais próxima e nº de lotes. */
+    @Query(
+        """
+        SELECT p.id AS productId, p.name, p.brand, p.imageUrl, p.unit,
+               c.name AS categoryName,
+               SUM(l.quantity) AS totalQuantity,
+               MIN(l.expiryDate) AS nextExpiry,
+               COUNT(l.id) AS lotCount
+        FROM products p
+        JOIN lots l ON l.productId = p.id AND l.deletedAt IS NULL AND l.quantity > 0
+        JOIN categories c ON c.id = p.categoryId
+        WHERE p.deletedAt IS NULL
+        GROUP BY p.id
+        ORDER BY nextExpiry, p.name
+        """,
+    )
+    fun observeStockSummary(): Flow<List<StockSummaryRow>>
 }
+
+data class StockSummaryRow(
+    val productId: String,
+    val name: String,
+    val brand: String?,
+    val imageUrl: String?,
+    val unit: MeasureUnit,
+    val categoryName: String,
+    val totalQuantity: Double,
+    val nextExpiry: LocalDate,
+    val lotCount: Int,
+)
 
 @Dao
 interface MovementDao {

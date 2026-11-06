@@ -2,8 +2,8 @@ package com.mystorage.ui.stock
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mystorage.data.local.dao.CategoryDao
-import com.mystorage.domain.model.Category
+import com.mystorage.domain.model.StockSummary
+import com.mystorage.domain.repository.StockRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,10 +13,11 @@ import javax.inject.Inject
 
 @HiltViewModel
 class StockViewModel @Inject constructor(
-    categoryDao: CategoryDao, // TODO: trocar por CategoryRepository (domain) ao criar a camada de repositório
+    stockRepository: StockRepository,
 ) : ViewModel() {
 
-    val categories: StateFlow<List<Category>> = categoryDao.observeAll()
-        .map { list -> list.map { Category(it.id, it.name, it.icon, it.color, it.sortOrder) } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    /** null = carregando. */
+    val items: StateFlow<List<StockSummary>?> = stockRepository.observeSummary()
+        .map<List<StockSummary>, List<StockSummary>?> { it }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 }
