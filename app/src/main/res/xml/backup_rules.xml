@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Auto Backup (Android 11 e anteriores): banco Room + preferências vão para o Google Drive. -->
+<full-backup-content>
+    <include domain="database" path="my_storage.db" />
+    <include domain="database" path="my_storage.db-wal" />
+    <include domain="database" path="my_storage.db-shm" />
+    <include domain="file" path="datastore/" />
+</full-backup-content>

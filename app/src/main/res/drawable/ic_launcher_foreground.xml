@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícone provisório: caixa de despensa. Área segura do adaptive icon = 66dp centrais. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- tampa -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,36h44a3,3 0,0 1,3 3v6a3,3 0,0 1,-3 3H32a3,3 0,0 1,-3 -3v-6a3,3 0,0 1,3 -3z" />
+    <!-- corpo -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,51h40v18a5,5 0,0 1,-5 5H39a5,5 0,0 1,-5 -5z" />
+    <!-- alça -->
+    <path
+        android:fillColor="#2E7D32"
+        android:pathData="M46,56h16a2,2 0,0 1,0 4H46a2,2 0,0 1,0 -4z" />
+</vector>

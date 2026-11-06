@@ -1,0 +1,4 @@
+<resources>
+    <!-- Tema base do sistema; as cores reais vêm do Compose (ui/theme). -->
+    <style name="Theme.MyStorage" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
