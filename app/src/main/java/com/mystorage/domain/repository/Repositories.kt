@@ -1,6 +1,9 @@
 package com.mystorage.domain.repository
 
+import com.mystorage.domain.model.AppSettings
 import com.mystorage.domain.model.Category
+import com.mystorage.domain.model.LotWithProduct
+import java.time.LocalDate
 import com.mystorage.domain.model.NewStockItem
 import com.mystorage.domain.model.Product
 import com.mystorage.domain.model.ProductInfo
@@ -18,8 +21,24 @@ interface ProductRepository {
 interface StockRepository {
     fun observeSummary(): Flow<List<StockSummary>>
 
+    /** Lotes ativos com dados do produto, ordenados pela validade. */
+    fun observeActiveLots(): Flow<List<LotWithProduct>>
+
+    suspend fun getActiveLots(): List<LotWithProduct>
+
     /** Cria o produto (se novo), o lote e a movimentação de entrada numa única transação. Retorna o id do lote. */
     suspend fun addStockItem(item: NewStockItem): String
+}
+
+interface SettingsRepository {
+    fun observe(): Flow<AppSettings>
+    suspend fun get(): AppSettings
+    suspend fun setWarningDays(days: Int)
+    suspend fun setNotifyHour(hour: Int)
+
+    /** Data da última verificação de validade (para o worker saber o que é novidade). */
+    suspend fun getLastExpiryCheck(): LocalDate?
+    suspend fun setLastExpiryCheck(date: LocalDate)
 }
 
 /** Fonte externa de dados de produto (Open Food Facts, Cosmos...). */

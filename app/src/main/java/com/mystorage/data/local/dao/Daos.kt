@@ -69,7 +69,36 @@ interface LotDao {
         """,
     )
     fun observeStockSummary(): Flow<List<StockSummaryRow>>
+
+    @Query("$LOTS_WITH_PRODUCT ORDER BY l.expiryDate")
+    fun observeActiveWithProduct(): Flow<List<LotWithProductRow>>
+
+    @Query("$LOTS_WITH_PRODUCT ORDER BY l.expiryDate")
+    suspend fun getActiveWithProduct(): List<LotWithProductRow>
+
+    companion object {
+        const val LOTS_WITH_PRODUCT = """
+            SELECT l.id AS lotId, l.productId, p.name AS productName, p.brand, p.imageUrl, p.unit,
+                   l.quantity, l.expiryDate, l.expiryMonthOnly, l.addedAt
+            FROM lots l
+            JOIN products p ON p.id = l.productId
+            WHERE l.deletedAt IS NULL AND l.quantity > 0 AND p.deletedAt IS NULL
+        """
+    }
 }
+
+data class LotWithProductRow(
+    val lotId: String,
+    val productId: String,
+    val productName: String,
+    val brand: String?,
+    val imageUrl: String?,
+    val unit: MeasureUnit,
+    val quantity: Double,
+    val expiryDate: LocalDate,
+    val expiryMonthOnly: Boolean,
+    val addedAt: LocalDate,
+)
 
 data class StockSummaryRow(
     val productId: String,

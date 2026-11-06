@@ -80,7 +80,12 @@ fun MyStorageNavHost() {
             startDestination = HomeRoute,
             modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
         ) {
-            composable<HomeRoute> { HomeScreen(onScanClick = { navController.navigate(ScannerRoute) }) }
+            composable<HomeRoute> {
+                HomeScreen(
+                    onScanClick = { navController.navigate(ScannerRoute) },
+                    onProductClick = { navController.navigate(ProductRoute(it)) },
+                )
+            }
             composable<StockRoute> {
                 StockScreen(
                     onProductClick = { navController.navigate(ProductRoute(it)) },

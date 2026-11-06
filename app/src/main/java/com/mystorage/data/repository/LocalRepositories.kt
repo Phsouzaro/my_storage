@@ -11,6 +11,7 @@ import com.mystorage.data.local.entity.MovementEntity
 import com.mystorage.data.local.entity.ProductEntity
 import com.mystorage.data.local.toDomain
 import com.mystorage.domain.model.Category
+import com.mystorage.domain.model.LotWithProduct
 import com.mystorage.domain.model.MovementType
 import com.mystorage.domain.model.NewStockItem
 import com.mystorage.domain.model.Product
@@ -45,6 +46,11 @@ class RoomStockRepository @Inject constructor(
 
     override fun observeSummary(): Flow<List<StockSummary>> =
         lotDao.observeStockSummary().map { rows -> rows.map { it.toDomain() } }
+
+    override fun observeActiveLots(): Flow<List<LotWithProduct>> =
+        lotDao.observeActiveWithProduct().map { rows -> rows.map { it.toDomain() } }
+
+    override suspend fun getActiveLots(): List<LotWithProduct> = lotDao.getActiveWithProduct().map { it.toDomain() }
 
     override suspend fun addStockItem(item: NewStockItem): String = db.withTransaction {
         val now = System.currentTimeMillis()

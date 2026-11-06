@@ -315,8 +315,8 @@ UUIDs + `updatedAt` + `deletedAt` em todas as entidades → estratégia *last-wr
 - [ ] CRUD de produtos, lotes e categorias
 - [ ] Consumo / descarte com sugestão FIFO por validade
 - [ ] Home com alertas + tela de estoque com filtros
-- [ ] `ExpiryCheckWorker` + notificação agrupada
-- [ ] Configurações (prazo, horário)
+- [x] `ExpiryCheckWorker` + notificação agrupada
+- [x] Configurações (prazo, horário)
 - [ ] Auto Backup + exportar/importar JSON
 
 ### v2
