@@ -11,6 +11,8 @@ import com.mystorage.data.local.entity.MovementEntity
 import com.mystorage.data.local.entity.ProductEntity
 import com.mystorage.data.local.toDomain
 import com.mystorage.domain.model.Category
+import com.mystorage.domain.model.Lot
+import com.mystorage.domain.model.LotMovement
 import com.mystorage.domain.model.LotWithProduct
 import com.mystorage.domain.model.MovementType
 import com.mystorage.domain.model.NewStockItem
@@ -35,6 +37,10 @@ class RoomProductRepository @Inject constructor(
     private val dao: ProductDao,
 ) : ProductRepository {
     override suspend fun findByBarcode(barcode: String): Product? = dao.findByBarcode(barcode)?.toDomain()
+
+    override suspend fun findById(id: String): Product? = dao.findById(id)?.toDomain()
+
+    override fun observeById(id: String): Flow<Product?> = dao.observeById(id).map { it?.toDomain() }
 }
 
 class RoomStockRepository @Inject constructor(
@@ -51,6 +57,33 @@ class RoomStockRepository @Inject constructor(
         lotDao.observeActiveWithProduct().map { rows -> rows.map { it.toDomain() } }
 
     override suspend fun getActiveLots(): List<LotWithProduct> = lotDao.getActiveWithProduct().map { it.toDomain() }
+
+    override fun observeLotsOfProduct(productId: String): Flow<List<Lot>> =
+        lotDao.observeByProduct(productId).map { list -> list.map { it.toDomain() } }
+
+    override suspend fun getLotsOfProduct(productId: String): List<Lot> =
+        lotDao.getByProduct(productId).map { it.toDomain() }
+
+    override suspend fun applyMovements(movements: List<LotMovement>) = db.withTransaction {
+        val now = System.currentTimeMillis()
+        movements.forEach { m ->
+            require(m.type != MovementType.IN) { "applyMovements é só para saídas" }
+            val lot = requireNotNull(lotDao.findById(m.lotId)) { "Lote ${m.lotId} não encontrado" }
+            require(m.quantity <= lot.quantity + 1e-9) { "Quantidade maior que o lote" }
+            // Arredonda resíduos de ponto flutuante (ex.: 0.30000000000000004) para zero.
+            val remaining = (lot.quantity - m.quantity).let { if (it < 1e-9) 0.0 else it }
+            lotDao.updateQuantity(lot.id, remaining, now)
+            movementDao.insert(
+                MovementEntity(
+                    id = UUID.randomUUID().toString(),
+                    lotId = lot.id,
+                    type = m.type,
+                    quantity = m.quantity,
+                    createdAt = now,
+                ),
+            )
+        }
+    }
 
     override suspend fun addStockItem(item: NewStockItem): String = db.withTransaction {
         val now = System.currentTimeMillis()

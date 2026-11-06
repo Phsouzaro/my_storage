@@ -313,7 +313,7 @@ UUIDs + `updatedAt` + `deletedAt` em todas as entidades → estratégia *last-wr
 - [x] Scanner (CameraX + ML Kit) com modo contínuo
 - [x] Lookup Open Food Facts → Cosmos → manual, com cache local
 - [ ] CRUD de produtos, lotes e categorias
-- [ ] Consumo / descarte com sugestão FIFO por validade
+- [x] Consumo / descarte com sugestão FIFO por validade (tela de produto)
 - [ ] Home com alertas + tela de estoque com filtros
 - [x] `ExpiryCheckWorker` + notificação agrupada
 - [x] Configurações (prazo, horário)

@@ -44,6 +44,13 @@ data class NewStockItem(
     }
 }
 
+/** Saída de estoque de um lote (consumo/descarte). */
+data class LotMovement(
+    val lotId: String,
+    val type: MovementType,
+    val quantity: Double,
+)
+
 /** Linha da tela de estoque: um produto com a soma dos lotes ativos. */
 data class StockSummary(
     val productId: String,

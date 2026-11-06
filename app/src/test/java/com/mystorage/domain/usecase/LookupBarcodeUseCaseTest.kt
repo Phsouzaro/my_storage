@@ -25,6 +25,8 @@ class LookupBarcodeUseCaseTest {
 
     private class FakeProducts(private val product: Product?) : ProductRepository {
         override suspend fun findByBarcode(barcode: String) = product?.takeIf { it.barcode == barcode }
+        override suspend fun findById(id: String) = product?.takeIf { it.id == id }
+        override fun observeById(id: String) = kotlinx.coroutines.flow.flowOf(product?.takeIf { it.id == id })
     }
 
     private class FakeSource(

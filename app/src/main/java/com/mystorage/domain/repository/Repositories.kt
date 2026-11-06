@@ -2,6 +2,8 @@ package com.mystorage.domain.repository
 
 import com.mystorage.domain.model.AppSettings
 import com.mystorage.domain.model.Category
+import com.mystorage.domain.model.Lot
+import com.mystorage.domain.model.LotMovement
 import com.mystorage.domain.model.LotWithProduct
 import java.time.LocalDate
 import com.mystorage.domain.model.NewStockItem
@@ -16,6 +18,8 @@ interface CategoryRepository {
 
 interface ProductRepository {
     suspend fun findByBarcode(barcode: String): Product?
+    suspend fun findById(id: String): Product?
+    fun observeById(id: String): Flow<Product?>
 }
 
 interface StockRepository {
@@ -25,6 +29,14 @@ interface StockRepository {
     fun observeActiveLots(): Flow<List<LotWithProduct>>
 
     suspend fun getActiveLots(): List<LotWithProduct>
+
+    /** Lotes com saldo de um produto, do que vence primeiro para o último. */
+    fun observeLotsOfProduct(productId: String): Flow<List<Lot>>
+
+    suspend fun getLotsOfProduct(productId: String): List<Lot>
+
+    /** Aplica saídas (baixa a quantidade dos lotes e registra os movimentos) numa única transação. */
+    suspend fun applyMovements(movements: List<LotMovement>)
 
     /** Cria o produto (se novo), o lote e a movimentação de entrada numa única transação. Retorna o id do lote. */
     suspend fun addStockItem(item: NewStockItem): String

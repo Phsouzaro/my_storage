@@ -12,6 +12,7 @@ import com.mystorage.domain.model.NewStockItem
 import com.mystorage.domain.model.Product
 import com.mystorage.domain.model.ProductSource
 import com.mystorage.domain.repository.CategoryRepository
+import com.mystorage.domain.repository.ProductRepository
 import com.mystorage.domain.usecase.AddStockItemUseCase
 import com.mystorage.domain.usecase.LookupBarcodeUseCase
 import com.mystorage.ui.navigation.AddItemRoute
@@ -59,12 +60,15 @@ class AddItemViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val lookupBarcode: LookupBarcodeUseCase,
     private val addStockItem: AddStockItemUseCase,
+    private val productRepository: ProductRepository,
     categoryRepository: CategoryRepository,
 ) : ViewModel() {
 
     private val route = savedStateHandle.toRoute<AddItemRoute>()
 
-    private val _state = MutableStateFlow(AddItemUiState(barcode = route.barcode, isLoading = route.barcode != null))
+    private val _state = MutableStateFlow(
+        AddItemUiState(barcode = route.barcode, isLoading = route.barcode != null || route.productId != null),
+    )
     val state: StateFlow<AddItemUiState> = _state
 
     /** Emite o nome do produto salvo; a tela volta para o scanner. */
@@ -75,23 +79,40 @@ class AddItemViewModel @Inject constructor(
         viewModelScope.launch {
             categoryRepository.observeAll().collect { list -> _state.update { it.copy(categories = list) } }
         }
-        route.barcode?.let { code -> viewModelScope.launch { lookup(code) } }
+        when {
+            route.productId != null -> viewModelScope.launch { loadExisting(route.productId) }
+            route.barcode != null -> viewModelScope.launch { lookup(route.barcode) }
+        }
+    }
+
+    private suspend fun loadExisting(productId: String) {
+        val product = productRepository.findById(productId)
+        if (product == null) {
+            _state.update { it.copy(isLoading = false, error = "Produto não encontrado") }
+        } else {
+            applyResult(LookupResult.Local(product), message = null)
+        }
     }
 
     private suspend fun lookup(code: String) {
         val result = runCatching { lookupBarcode(code) }
             .getOrElse { LookupResult.NotFound(code, offline = true) }
+        applyResult(result, message = "Já está no seu catálogo")
+    }
+
+    private fun applyResult(result: LookupResult, message: String?) {
         _state.update { s ->
             when (result) {
                 is LookupResult.Local -> s.copy(
                     isLoading = false,
+                    barcode = result.product.barcode,
                     existingProduct = result.product,
                     name = result.product.name,
                     brand = result.product.brand.orEmpty(),
                     imageUrl = result.product.imageUrl,
                     categoryId = result.product.categoryId,
                     unit = result.product.unit,
-                    lookupMessage = "Já está no seu catálogo",
+                    lookupMessage = message,
                 )
                 is LookupResult.Remote -> s.copy(
                     isLoading = false,

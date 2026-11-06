@@ -4,6 +4,8 @@ import com.mystorage.data.local.dao.LotWithProductRow
 import com.mystorage.data.local.dao.StockSummaryRow
 import com.mystorage.domain.model.LotWithProduct
 import com.mystorage.data.local.entity.CategoryEntity
+import com.mystorage.data.local.entity.LotEntity
+import com.mystorage.domain.model.Lot
 import com.mystorage.data.local.entity.ProductEntity
 import com.mystorage.domain.model.Category
 import com.mystorage.domain.model.Product
@@ -21,6 +23,16 @@ fun ProductEntity.toDomain() = Product(
     unit = unit,
     minStock = minStock,
     source = source,
+)
+
+fun LotEntity.toDomain() = Lot(
+    id = id,
+    productId = productId,
+    quantity = quantity,
+    expiryDate = expiryDate,
+    expiryMonthOnly = expiryMonthOnly,
+    addedAt = addedAt,
+    location = location,
 )
 
 fun LotWithProductRow.toDomain() = LotWithProduct(

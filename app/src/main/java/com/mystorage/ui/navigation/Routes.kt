@@ -8,5 +8,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object ScannerRoute
 @Serializable data class ProductRoute(val productId: String)
 
-/** [barcode] null = produto sem código (cadastro manual). */
-@Serializable data class AddItemRoute(val barcode: String? = null)
+/**
+ * [productId] preenchido = novo lote de um produto já cadastrado (vindo da tela do produto).
+ * Senão, [barcode] null = produto sem código (cadastro manual).
+ */
+@Serializable data class AddItemRoute(val barcode: String? = null, val productId: String? = null)

@@ -22,7 +22,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.mystorage.ui.additem.AddItemScreen
 import com.mystorage.ui.home.HomeScreen
 import com.mystorage.ui.product.ProductScreen
@@ -104,10 +103,10 @@ fun MyStorageNavHost() {
                 // Modo contínuo: depois de salvar, volta para o scanner.
                 AddItemScreen(onSaved = navController::popBackStack, onBack = navController::popBackStack)
             }
-            composable<ProductRoute> { entry ->
+            composable<ProductRoute> {
                 ProductScreen(
-                    productId = entry.toRoute<ProductRoute>().productId,
                     onBack = navController::popBackStack,
+                    onAddLot = { product -> navController.navigate(AddItemRoute(product.barcode, product.id)) },
                 )
             }
         }

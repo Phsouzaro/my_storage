@@ -32,6 +32,9 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE id = :id")
     suspend fun findById(id: String): ProductEntity?
 
+    @Query("SELECT * FROM products WHERE id = :id")
+    fun observeById(id: String): Flow<ProductEntity?>
+
     @Upsert
     suspend fun upsert(product: ProductEntity)
 }
@@ -42,8 +45,17 @@ interface LotDao {
     @Query("SELECT * FROM lots WHERE deletedAt IS NULL AND quantity > 0 ORDER BY expiryDate")
     fun observeActive(): Flow<List<LotEntity>>
 
-    @Query("SELECT * FROM lots WHERE productId = :productId AND deletedAt IS NULL AND quantity > 0 ORDER BY expiryDate")
+    @Query("SELECT * FROM lots WHERE productId = :productId AND deletedAt IS NULL AND quantity > 0 ORDER BY expiryDate, addedAt")
     fun observeByProduct(productId: String): Flow<List<LotEntity>>
+
+    @Query("SELECT * FROM lots WHERE productId = :productId AND deletedAt IS NULL AND quantity > 0 ORDER BY expiryDate, addedAt")
+    suspend fun getByProduct(productId: String): List<LotEntity>
+
+    @Query("SELECT * FROM lots WHERE id = :id")
+    suspend fun findById(id: String): LotEntity?
+
+    @Query("UPDATE lots SET quantity = :quantity, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateQuantity(id: String, quantity: Double, updatedAt: Long)
 
     /** Lotes ativos que vencem até [limitEpochDay] (inclusive), incluindo os já vencidos. */
     @Query("SELECT * FROM lots WHERE deletedAt IS NULL AND quantity > 0 AND expiryDate <= :limitEpochDay ORDER BY expiryDate")

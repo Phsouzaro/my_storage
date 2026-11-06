@@ -1,5 +1,7 @@
 package com.mystorage.domain.usecase
 
+import com.mystorage.domain.model.Lot
+import com.mystorage.domain.model.LotMovement
 import com.mystorage.domain.model.LotWithProduct
 import com.mystorage.domain.model.MeasureUnit
 import com.mystorage.domain.model.NewProduct
@@ -23,6 +25,9 @@ class AddStockItemUseCaseTest {
         override fun observeSummary(): Flow<List<StockSummary>> = emptyFlow()
         override fun observeActiveLots(): Flow<List<LotWithProduct>> = emptyFlow()
         override suspend fun getActiveLots(): List<LotWithProduct> = emptyList()
+        override fun observeLotsOfProduct(productId: String): Flow<List<Lot>> = emptyFlow()
+        override suspend fun getLotsOfProduct(productId: String): List<Lot> = emptyList()
+        override suspend fun applyMovements(movements: List<LotMovement>) = Unit
         override suspend fun addStockItem(item: NewStockItem): String {
             saved = item
             return "lot-1"
